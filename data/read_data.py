@@ -47,7 +47,7 @@ def build_dataset():
     with open("serialized_data", "wb") as f: 
         pickle.dump({
             "data" : data, 
-            "label" : labels
+            "labels" : labels
         }, f) 
     
     print("Data Serialized \n ")
