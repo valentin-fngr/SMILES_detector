@@ -13,7 +13,7 @@ try:
     with open("data/serialized_data", "rb") as f: 
         print("Serialized dataset already exists \n") 
         dataset = pickle.load(f) 
-        data, labels = dataset["data"], dataset["labels"]
+        data, labels = np.array(dataset["data"]), np.array(dataset["labels"])
         print("Successfuly load the serialized data \n ")
 except: 
     print("Building the dataset ... \n") 
@@ -27,16 +27,18 @@ plt.show()
 
 # split data 
 X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.3, random_state=42)
-
 print(f"X_train size : {X_train.shape}")
 print(f"X_test size : {X_test.shape} \n")  
 
-print("Looking for class imbalance")
+print("Looking at class imbalance")
 # bar plot 
-height = [labels.count(0), labels.count(1)] 
+height = [list(labels).count(0), list(labels).count(1)] 
+for i, h in enumerate(height): 
+    print(f"{i}th classe : {h} occurencies  ")
 plt.bar(target_label, height) 
 plt.show()
+
 # on-hot-encoding 
 
-y_train = OneHotEncoder.fit_transform(y_train) 
-y_test = OneHotEncoder.fit_transform(y_test)
+y_train = tf.keras.utils.to_categorical(y_train) 
+y_test = tf.keras.utils.to_categorical(y_test)

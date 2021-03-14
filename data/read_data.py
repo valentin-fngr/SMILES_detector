@@ -7,7 +7,7 @@ import tensorflow as tf
 
 def build_dataset():
 
-    DIRECTORY = "SMILEs"
+    DIRECTORY = os.path.join("data","SMILEs")
     
     data = [] 
     labels = []
@@ -26,7 +26,7 @@ def build_dataset():
             # convert to PIL format 
             try: 
                 img = tf.keras.preprocessing.image.load_img(img_path) 
-                img_array = tf.keras.preprocessing.image.img_to_array(img) 
+                img_array = tf.keras.preprocessing.image.img_to_array(img).astype(np.uint8)
                 data.append(img_array)
                 labels.append(label) 
             except: 
@@ -46,8 +46,8 @@ def build_dataset():
     print("Serializing Data ...  \n")
     with open("serialized_data", "wb") as f: 
         pickle.dump({
-            "data" : data, 
-            "labels" : labels
+            "data" : np.array(data), 
+            "labels" : np.array(labels)
         }, f) 
     
     print("Data Serialized \n ")
