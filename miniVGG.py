@@ -20,15 +20,10 @@ class MiniVGGNet:
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Dropout(0.5)(x, training=True)
         
-        if classes != 2: 
-            outputs = tf.keras.layers.Dense(classes, activation=="softmax")(x)
-        else: 
-            outputs = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-
         # output 
+        outputs = tf.keras.layers.Dense(classes, activation="softmax")(x)
 
         # return model 
-
         model = tf.keras.Model(inputs=inputs, outputs=outputs) 
         return model
 
