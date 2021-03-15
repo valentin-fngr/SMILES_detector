@@ -8,6 +8,7 @@ import os
 import tensorflow as tf 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 
 GPU = tf.config.list_physical_devices('GPU')
@@ -51,7 +52,7 @@ for i, h in enumerate(height):
 plt.bar(target_label, height) 
 plt.show()
 
-# on-hot-encoding 
+# one-hot-encoding 
 
 y_train = tf.keras.utils.to_categorical(y_train) 
 y_test = tf.keras.utils.to_categorical(y_test)
