@@ -5,6 +5,7 @@ from miniVGG import MiniVGGNet
 from utils.utils import stepwise_scheduler
 import matplotlib.pyplot as plt
 import os
+import datetime
 import tensorflow as tf 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
@@ -18,7 +19,7 @@ GPU = tf.config.list_physical_devices('GPU')
 print(f"Available GPUs {GPU}")
 
 target_label = ["Not Smiling", "Smiling"]
-
+epochs = 20
 # load data 
 try: 
     with open("data/serialized_data", "rb") as f: 
@@ -39,14 +40,15 @@ print(f"X_test size : {X_test.shape} \n")
 print(y_train[:50])
 
 print("Looking at class imbalance")
-# bar plot 
-classes_weight = []
 
-height = [list(labels).count(0), list(labels).count(1)] 
-for i, h in enumerate(height): 
-    print(f"{i}th classe : {h} occurencies  ")
-    classes_weight.append(h / len(labels))
-    print(f"class {i} Frequency : {classes_weight[i] * 100} % ")
+neg = list(labels).count(0)
+pos = list(labels).count(1)
+total = neg + pos
+
+classes_weight = {0:(1/neg)*(total) / 2.0, 1:(1/pos)*(total) / 2.0}
+
+print(f"classe 'Not smiling' : {neg} occurencies")
+print(f"classe 'Smiling' : {pos} occurencies")
 
 # plt.bar(target_label, height) 
 # plt.show()
@@ -58,44 +60,44 @@ y_test = tf.keras.utils.to_categorical(y_test, 2)
 
 # model instantiation
 width, height, depth = X_train.shape[1:]
-model = MiniVGGNet.build(width, height, depth, 2)
-print("Model summary : \n")
-model.summary()
 
-# callbacks 
-epochs = 50
-batch_size = 32
+lr = 0.01
+bs = 32
 
-checkpoint_filepath = "/training/model.h5"
-log_dir  = "logs/fit/MiniVGGNet_50ep_bs32_0.01decay_noweights"
+checkpoint_filepath = "/train/best_model"
+log_dir = f"./logs/fit/miniVGGNET_ls_weighted_{lr}_bs{bs}"
+
 callbacks = [
-    tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
+    # tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.callbacks.LearningRateScheduler(stepwise_scheduler, verbose=1), 
     tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath, monitor="val_loss", verbose=1, save_best_only=True
         ), 
     ]
 
+model = MiniVGGNet.build(width, height, depth, 2)
 # compile 
-optimizer = tf.keras.optimizers.SGD(learning_rate=0.01) 
+optimizer = tf.keras.optimizers.SGD(learning_rate=lr) 
 model.compile(
     optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"]
-    )
+)
 
 # fit 
 h = model.fit(
     x=X_train, 
     y=y_train, 
-    batch_size=batch_size, 
+    batch_size=bs, 
     epochs=epochs,
     verbose=1, 
     validation_data=(X_test, y_test), 
     shuffle=True, 
-    callbacks=callbacks
+    callbacks=callbacks, 
+    class_weight=classes_weight
 )
 
 try: 
-    model.load_weights(checkpoint_filepath)
+    new_model = MiniVGGNet.build(width, height, depth, 2)
+    new_model.load_weights(checkpoint_filepath)
     print("Loaded weights ! ")
 except Exception as e: 
     print("-"*50) 
@@ -105,5 +107,5 @@ except Exception as e:
 
 # check tensorflow for learning curves .. 
 print("Classification reports : \n")
-predictions = model.predict(X_test)
+predictions = new_model.predict(X_test)
 print(classification_report(y_test.argmax(axis=1), predictions.argmax(axis=1), target_names=["Not Smiling", "Smiling"]))
