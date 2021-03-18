@@ -14,12 +14,11 @@ from sklearn.metrics import classification_report
 # GPU device is now visible  
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
-
 GPU = tf.config.list_physical_devices('GPU')
 print(f"Available GPUs {GPU}")
 
 target_label = ["Not Smiling", "Smiling"]
-epochs = 20
+epochs = 50
 # load data 
 try: 
     with open("data/serialized_data", "rb") as f: 
@@ -35,6 +34,8 @@ except:
 
 # split data 
 X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.3, random_state=42, shuffle=True)
+X_test = X_test / 255.0
+
 print(f"X_train size : {X_train.shape}")
 print(f"X_test size : {X_test.shape} \n")  
 print(y_train[:50])
@@ -58,17 +59,30 @@ print(f"classe 'Smiling' : {pos} occurencies")
 y_train = tf.keras.utils.to_categorical(y_train, 2)
 y_test = tf.keras.utils.to_categorical(y_test, 2)
 
+# Data Augmentation 
+
+data_augm = tf.keras.preprocessing.image.ImageDataGenerator(
+    rescale=1/255.0, 
+    horizontal_flip=True, 
+    vertical_flip=True, 
+    rotation_range=25,
+    zoom_range=0.3, 
+    shear_range=0.2, 
+    width_shift_range=0.1, 
+    height_shift_range=0.1
+)
+
 # model instantiation
 width, height, depth = X_train.shape[1:]
 
 lr = 0.01
 bs = 32
 
-checkpoint_filepath = "/train/best_model"
-log_dir = f"./logs/fit/miniVGGNET_ls_weighted_{lr}_bs{bs}"
+checkpoint_filepath = "./train/best_model.h5"
+log_dir = f"./logs/fit/miniVGGNET2_data_augm_weighted_{lr}_bs{bs}"
 
 callbacks = [
-    # tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
+    tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.callbacks.LearningRateScheduler(stepwise_scheduler, verbose=1), 
     tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath, monitor="val_loss", verbose=1, save_best_only=True
@@ -82,11 +96,9 @@ model.compile(
     optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"]
 )
 
-# fit 
-h = model.fit(
-    x=X_train, 
-    y=y_train, 
-    batch_size=bs, 
+# fit with data augm
+h = model.fit(data_augm.flow(x=X_train, y=y_train, batch_size=bs),
+    steps_per_epoch=len(X_train) // bs,
     epochs=epochs,
     verbose=1, 
     validation_data=(X_test, y_test), 
@@ -94,7 +106,6 @@ h = model.fit(
     callbacks=callbacks, 
     class_weight=classes_weight
 )
-
 try: 
     new_model = MiniVGGNet.build(width, height, depth, 2)
     new_model.load_weights(checkpoint_filepath)

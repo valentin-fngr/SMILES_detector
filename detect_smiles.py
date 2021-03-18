@@ -4,7 +4,7 @@ import tensorflow as tf
 import imutils
 
 # loading trained miniVGGNet
-model = tf.keras.models.load_model("train/best_model/")
+model = tf.keras.models.load_model("train/best_model.h5")
 
 
 
@@ -19,7 +19,6 @@ def play_video(video_path=None):
     else: 
         # read video
         camera = cv2.VideoCapture(video_path)
-
 
     while True: 
 
@@ -41,7 +40,8 @@ def play_video(video_path=None):
             roi = tf.keras.preprocessing.image.img_to_array(roi)
             roi = np.expand_dims(roi, axis=0)
 
-            smiling, notSmiling = model.predict(roi)[0]
+            notSmiling, smiling = model.predict(roi)[0]
+            print(notSmiling, smiling)
             if smiling > notSmiling: 
                 label = "Smiling" 
             else: 
@@ -53,10 +53,8 @@ def play_video(video_path=None):
             cv2.imshow("Face", frameClone)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-
     camera.release() 
     cv2.destroyAllWindows()
-
 
 # test path 
 
